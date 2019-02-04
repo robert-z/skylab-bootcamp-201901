@@ -1,51 +1,95 @@
+'use strict'
+
 /**
- * ThegamesDB API client.
- *
- * @version 1.0.0
+ * 
+ * Ultra-VGSM API client.
+ * 
+ * @version 0.0.1
+ * 
  */
-const thegamesDbApi = {
-  apiKey: '387f91ccf550081f8c890fefc75982c76d309d2b215cfbefd959d520d397c72b',
 
-  url: 'https://api.thegamesdb.net',
+const ultraVGSMApi = {
 
-  proxy: 'https://skylabcoders.herokuapp.com/proxy?url=',
+    publicKey: 'no-public-key',
+    url: 'https://skylabcoders.herokuapp.com/proxy?url=https://api.thegamesdb.net',
 
-  /**
-   *
-   * @param {String} query - The text to match on games search.
-   * @returns {Promise} - Resolves with games, otherwise rejects with error.
-   *
-   * @throws {TypeError} - On wrong parameters type.
-   * @throws {Error} - On empty parameters value.
-   */
-  searchGame(query, params = '') {
-    if (typeof query !== 'string') throw TypeError(`${query} is not a string`);
+    retrieveGame(gameId) {
+        if (typeof gameId !== 'string') throw TypeError(`${gameId} is not a string`)
 
-    if (!query.trim().length) throw Error('query is empty');
+        if (!gameId.trim().length) throw Error('gameId is empty')
+        
+        if (isNaN(Number(gameId))) throw Error(`${gameId} should be a number`)
+        
+        if (Number(gameId)<1) throw Error(`${gameId} should be a bigger than 0 number`)
 
-    let url = new URL(`${this.url}/Games/ByGameName`);
+        if (Number(gameId)%1!==0) throw Error(`${gameId} should be an integer number`)
 
-    let urlParams = {};
-    urlParams.apikey = this.apiKey;
-    urlParams.name = query;
-    urlParams.include = params;
-  
-    Object.keys(urlParams).forEach(key => url.searchParams.append(key, urlParams[key]));
+        return fetch(`${this.url}/Games/ByGameID?apikey=${this.publicKey}&id=${gameId}&fields=overview%2Cyoutube&include=boxart%2Cplatform`, {
+            method: 'GET'
+        })
+            .then(response => response.json())
+            .then(response => {
+                const status = response.status
+                if (status) {
+                    if (status === 'Success') {
+                        const count = response.data.count
+                        if (count !== 0) {
+                            const { code,
+                                status,
+                                data: { games }, 
+                                include: { boxart }
+                                } = response
+                            return response
+                        }
+                        if (count === 0) throw Error(`${gameId} doesn't exist in database`)
+                    }
+                    else {
+                        throw Error(status)
+                    }
+                }
+                throw Error(response.error)
+            })
+    },
 
-    return fetch(`${this.proxy + url}`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then(response => response.json())
-      .then(response => {
-        const { code, status, data, include , pages } = response;
+    retrieveImages(gameId) {
+        if (typeof gameId !== 'string') throw TypeError(`${gameId} is not a string`)
 
-        if (code !== 200) throw Error(status);
+        if (!gameId.trim().length) throw Error('gameId is empty')
+        
+        if (isNaN(Number(gameId))) throw Error(`${gameId} should be a number`)
+        
+        if (Number(gameId)<1) throw Error(`${gameId} should be a bigger than 0 number`)
 
-        return { data, include , pages };
-      });
-  }
-};
+        if (Number(gameId)%1!==0) throw Error(`${gameId} should be an integer number`)
 
-export default thegamesDbApi;
+        return fetch(`${this.url}/Games/Images?apikey=${this.publicKey}&games_id=${gameId}`, {
+            method: 'GET'
+        })
+            .then(response => response.json())
+            .then(response => {
+                const status = response.status
+                if (status) {
+                    if (status === 'Success') {
+                        const count = response.data.count
+                        if (count !== 0) {
+                            const { code,
+                                status,
+                                data: { base_url,
+                                        images }
+                            } = response
+                            return response
+                        }
+                        if (count === 0) throw Error(`${gameId} doesn't exist in database`)
+                    }
+                    else {
+                        throw Error(status)
+                    }
+                }
+                throw Error(response.error)
+            })
+
+    }
+}
+
+
+export default ultraVGSMApi
